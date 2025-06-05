@@ -50,18 +50,6 @@ node_modules/
 /frontend/dist
 /frontend/build
 
-# Images temporaires
-*.png
-*.jpg
-*.jpeg
-*.gif
-*.svg
-!frontend/*.png
-!frontend/*.jpg
-!frontend/*.jpeg
-!frontend/*.gif
-!frontend/*.svg
-
 # Backup
 *~
 
