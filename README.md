@@ -79,8 +79,7 @@ Voir le dossier `backend/` pour intégrer un modèle (ex : RandomForest, Isola
 
 ## Aperçu
 
-![screenshot](screenshoot.png) <!-- Ajoute une capture d’écran du site ici -->
-
+![screenshot](/screenshoot.png) 
 ---
 
 ##  Licence
