@@ -1,0 +1,74 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+.env
+.venv
+venv/
+ENV/
+
+# Jupyter
+.ipynb_checkpoints
+
+# VSCode
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Data
+*.sqlite3
+*.db
+*.bak
+*.tmp
+
+# Flask
+instance/
+*.db
+
+# Env
+.env*
+
+# Node/npm
+node_modules/
+
+# Docker
+**/.docker/
+**/.dockerignore
+
+# Frontend build
+/frontend/dist
+/frontend/build
+
+# Images temporaires
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.svg
+!frontend/*.png
+!frontend/*.jpg
+!frontend/*.jpeg
+!frontend/*.gif
+!frontend/*.svg
+
+# Backup
+*~
+
+# IA/ML
+*.joblib
+*.pkl
+*.h5
+
+# Spark
+spark-warehouse/

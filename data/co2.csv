@@ -1,0 +1,9 @@
+lat,lon,nom,co2,temperature,humidite,aqi,type_zone,date_heure,alerte
+-18.9101,47.5259,Analakely,420,23,60,45,centre,2025-06-05 09:00:00,normal
+-18.9107,47.5184,Isoraka,510,25,58,52,résidentiel,2025-06-05 09:00:00,attention
+-18.8871,47.5669,Ambatobe,395,22,64,40,résidentiel,2025-06-05 09:00:00,normal
+-18.9146,47.5277,Ambohijatovo,380,21,68,38,parc,2025-06-05 09:00:00,normal
+-18.8950,47.5417,Andraharo,610,27,55,70,industriel,2025-06-05 09:00:00,critique
+-18.8792,47.5350,Ankorondrano,460,24,63,48,bureau,2025-06-05 09:00:00,normal
+-18.8667,47.5431,Ivandry,430,23,65,42,résidentiel,2025-06-05 09:00:00,normal
+-18.9194,47.5260,Mahamasina,450,24,62,46,stade,2025-06-05 09:00:00,normal

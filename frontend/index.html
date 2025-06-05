@@ -1,0 +1,345 @@
+<!-- frontend/index.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Urban Analytics Madagascar</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <style>
+    html, body { height: 100%; margin: 0; font-family: 'Segoe UI', Arial, sans-serif; background: #181a1b; }
+    .header {
+      position: fixed; top: 0; left: 0; width: 100vw; z-index: 2000;
+      background: #23262aee; color: #fff; font-size: 1.5em; font-weight: 700;
+      padding: 18px 0 13px 46px; letter-spacing: 1px; box-shadow: 0 1px 8px #0005;
+      border-bottom: 1px solid #2b2d2e; backdrop-filter: blur(3px);
+    }
+    .sidebar {
+      position: fixed; top: 62px; left: 0; bottom: 0; z-index: 1500;
+      width: 340px; max-width: 95vw; height: calc(100vh - 62px);
+      background: rgba(30,32,34,0.98); color: #fff;
+      box-shadow: 2px 0 16px #0007;
+      border-top-right-radius: 18px;
+      border-bottom-right-radius: 18px;
+      padding: 20px 18px 14px 20px;
+      overflow-y: auto;
+      transition: left 0.25s;
+      font-family: 'Segoe UI', 'Arial', sans-serif;
+      display: flex; flex-direction: column;
+    }
+    .sidebar h2 { margin: 0 0 16px 0; font-size: 1.19em; font-weight: 600; letter-spacing: .5px; }
+    .sidebar .filters { margin-bottom: 18px; display: flex; flex-wrap: wrap; gap: 14px; align-items: center; }
+    .sidebar label { font-size: .97em; color: #bbb; }
+    .sidebar select {
+      background: #23262a; color: #fff; border: 1px solid #444; border-radius: 6px; padding: 2px 14px; font-size: 1em;
+      margin-left: 6px; margin-right: 8px;
+    }
+    .sidebar .point-card {
+      background: #232628; border-radius: 14px; padding: 15px 15px 10px 15px; margin-bottom: 13px; box-shadow: 0 2px 8px #0003; position:relative;
+      display: flex; flex-direction: column; gap: 4px;
+      transition: box-shadow .15s;
+    }
+    .sidebar .point-card:hover { box-shadow: 0 4px 18px #0006; }
+    .sidebar .point-title { font-size: 1.11em; font-weight: 600; display: flex; align-items: center; gap: 10px; }
+    .sidebar .badge {
+      display: inline-block; min-width: 58px; text-align: center;
+      background: #444; color: #fff; padding: 2px 10px; border-radius: 8px; font-size: .93em; margin-left: 10px; text-transform: uppercase;
+      font-weight: 700; letter-spacing: .5px;
+    }
+    .badge.normal { background: #3bb54a; }
+    .badge.attention { background: #f6a700; }
+    .badge.critique { background: #e53935; }
+    .sidebar .point-meta { color: #bbb; font-size: .97em; margin-bottom: 2px; }
+    .sidebar .point-infos {
+      display: flex; gap: 13px; flex-wrap: wrap; font-size: .97em; margin-bottom: 4px;
+    }
+    .sidebar .point-infos span { display: flex; align-items: center; gap: 3px; }
+    .sidebar .point-date { font-size: .94em; color: #aaa; margin-bottom: 2px; }
+    .sidebar .point-coord { font-size: .92em; color: #aaa; }
+    .sidebar .error { background: #e53935; color: #fff; border-radius: 8px; padding: 10px 14px; margin-bottom: 14px; font-size: 1em; }
+    .sidebar .empty { color: #aaa; font-style: italic; margin-top: 16px; }
+    .sidebar .maj { margin-top: 8px; font-size: .96em; color: #bbb; }
+    .sidebar .loader { margin: 30px auto; }
+    #map {
+      position: absolute; top: 62px; left: 340px; right: 0; bottom: 0;
+      z-index: 1000;
+      transition: left 0.25s;
+    }
+    .sidebar-toggle {
+      position: fixed; top: 18px; left: 12px; z-index: 2100;
+      background: #222; color: #fff; border: none; border-radius: 6px;
+      font-size: 1.4em; padding: 5px 14px; cursor: pointer;
+      box-shadow: 0 1px 8px #0006;
+      display: none;
+    }
+    .legend {
+      background: #222; color: #fff; padding: 10px; border-radius: 10px; font-size: 1em; box-shadow: 2px 2px 8px #0008; border: 1px solid #2b2d2e;
+      margin-bottom: 18px;
+    }
+    .legend span { display: inline-block; width: 16px; height: 16px; margin-right: 5px; vertical-align: middle; border-radius: 50%; }
+    .loader {
+      position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
+      background: #222b; padding: 32px 40px; border-radius: 18px; color: #fff; font-size: 1.2rem; z-index: 2000;
+      box-shadow: 0 4px 24px #000a; display: flex; align-items: center; gap: 14px;
+    }
+    .loader .dot { width: 12px; height: 12px; border-radius: 50%; background: #f90; animation: bounce 1s infinite alternate; margin-left: 8px; }
+    @keyframes bounce { to { transform: translateY(-10px); background: #fff700; } }
+    @media (max-width: 700px) {
+      .sidebar { width: 90vw; left: -95vw; border-radius: 0 18px 18px 0; }
+      .sidebar.open { left: 0; }
+      #map { left: 0; }
+      .sidebar-toggle { display: block; }
+    }
+    @media (min-width: 701px) {
+      .sidebar { left: 0; }
+      #map { left: 340px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="header">Urban Analytics CO₂ – Zone Antananarivo</div>
+  <button id="sidebar-toggle" class="sidebar-toggle" title="Afficher/masquer le panneau">☰</button>
+  <div id="sidebar" class="sidebar"></div>
+  <div id="map"></div>
+  <div id="loader" class="loader"><span>Chargement des données</span><div class="dot"></div></div>
+  <style>
+    html, body { height: 100%; margin: 0; padding: 0; }
+    body { height: 100vh; overflow: hidden; }
+    .header {
+      position: fixed; top: 0; left: 0; width: 100vw; z-index: 2000;
+      background: #222d; color: #fff; font-size: 1.6em; font-weight: 700;
+      padding: 18px 0 13px 46px; letter-spacing: 1px; box-shadow: 0 1px 8px #0005;
+      backdrop-filter: blur(3px);
+    }
+    .sidebar {
+      position: fixed; top: 62px; left: 0; bottom: 0; z-index: 1500;
+      width: 340px; max-width: 95vw; height: calc(100vh - 62px);
+      background: rgba(30,32,34,0.98); color: #fff;
+      box-shadow: 2px 0 16px #0007;
+      border-top-right-radius: 18px;
+      border-bottom-right-radius: 18px;
+      padding: 18px 16px 10px 18px;
+      overflow-y: auto;
+      transition: left 0.25s;
+      font-family: 'Segoe UI', 'Arial', sans-serif;
+    }
+    #map {
+      position: absolute; top: 62px; left: 340px; right: 0; bottom: 0;
+      z-index: 1000;
+      transition: left 0.25s;
+    }
+    .sidebar-toggle {
+      position: fixed; top: 18px; left: 12px; z-index: 2100;
+      background: #222; color: #fff; border: none; border-radius: 6px;
+      font-size: 1.4em; padding: 5px 14px; cursor: pointer;
+      box-shadow: 0 1px 8px #0006;
+      display: none;
+    }
+    @media (max-width: 700px) {
+      .sidebar {
+      }
+    }
+  </style>
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/leaflet.heat/dist/leaflet-heat.js"></script>
+  <script>
+  const map = L.map('map', { zoomControl: true }).setView([-21.45, 47.11], 14);
+  const darkLayer = L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+    attribution: ' &copy; Mcrai LAYDAM', maxZoom: 19
+  }).addTo(map);
+  const lightLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; OpenStreetMap contributors', maxZoom: 19
+  });
+  const satelliteLayer = L.tileLayer(
+    'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+    {
+      attribution: 'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP, and the GIS User Community',
+      maxZoom: 19
+    }
+  );
+
+  const pointsLayer = L.layerGroup();
+  const heatLayer = L.layerGroup();
+  let perimetreLayer = L.layerGroup();
+  let darkMode = true;
+  // (Gestion sidebar responsive d&eacute;j&agrave; g&eacute;r&eacute;e plus bas)
+
+
+    // --- Bouton mode sombre/clair ---
+    const modeBtn = document.createElement('button');
+    modeBtn.innerText = '&#x1F319;';
+    modeBtn.title = 'Basculer mode sombre / clair';
+    modeBtn.style.position = 'absolute';
+    modeBtn.style.top = '24px';
+    modeBtn.style.right = '24px';
+    modeBtn.style.zIndex = '1200';
+    modeBtn.style.background = '#222';
+    modeBtn.style.color = '#fff';
+    modeBtn.style.border = 'none';
+    modeBtn.style.padding = '10px 14px';
+    modeBtn.style.borderRadius = '50%';
+    modeBtn.style.fontSize = '1.2rem';
+    modeBtn.style.boxShadow = '0 2px 10px #0007';
+    modeBtn.style.cursor = 'pointer';
+    document.body.appendChild(modeBtn);
+    modeBtn.onclick = () => {
+      if (darkMode) {
+        map.removeLayer(darkLayer); lightLayer.addTo(map); modeBtn.innerText = '&#x2600;'; darkMode = false;
+      } else {
+        map.removeLayer(lightLayer); darkLayer.addTo(map); modeBtn.innerText = '&#x1F319;'; darkMode = true;
+      }
+    };
+
+    // Filtres dynamiques
+    let currentType = 'all';
+    let currentAlerte = 'all';
+
+
+    // Fonction d'affichage des points avec filtres
+    function displayPoints(data) {
+      pointsLayer.clearLayers();
+      let filtered = data.filter(p =>
+        (currentType === 'all' || p.type_zone === currentType) &&
+        (currentAlerte === 'all' || p.alerte === currentAlerte)
+      );
+      filtered.forEach((p, idx) => {
+        let color = p.alerte === 'critique' ? 'red' : (p.alerte === 'attention' ? 'orange' : 'green');
+        const marker = L.marker([p.lat, p.lon], {
+          icon: L.icon({
+            iconUrl: `https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-${color}.png`,
+            iconSize: [25, 41], iconAnchor: [12, 41], popupAnchor: [1, -34], shadowUrl: 'https://unpkg.com/leaflet@1.7.1/dist/images/marker-shadow.png', shadowSize: [41, 41]
+          })
+        });
+        marker.bindPopup(
+          `<div style='font-size:1.05em;min-width:170px'>
+            <b>&#x1F4CD; ${p.nom}</b><br>
+            <span style='color:#888'>${p.type_zone}</span><br>
+            <b>CO&sub2;</b>: <span style='color:${color}'>${p.co2} ppm</span><br>
+            &#x1F321; <b>${p.temperature}&#x2103;</b> | &#x1F4A7; <b>${p.humidite}%</b><br>
+            AQI: <b>${p.aqi}</b><br>
+            <b>&Eacute;tat</b>: <span style='color:${color};text-transform:capitalize'>${p.alerte}</span><br>
+            <small>&#x1F4C5; ${p.date_heure}<br>Lat: ${p.lat}<br>Lon: ${p.lon}</small>
+          </div>`
+        );
+        pointsLayer.addLayer(marker);
+        if(idx === 0) marker.openPopup();
+      });
+    }
+
+    // Sidebar r&eacute;capitulatif
+    function updateSidebar(data) {
+      let filtered = data.filter(p =>
+        (currentType === 'all' || p.type_zone === currentType) &&
+        (currentAlerte === 'all' || p.alerte === currentAlerte)
+      );
+      let html = `<div style='margin-bottom:12px;'>
+        <label>Type de zone: <select id='filter-type'>
+          <option value='all'>Tous</option>
+          ${[...new Set(data.map(p=>p.type_zone))].map(z=>`<option value='${z}'>${z}</option>`).join('')}
+        </select></label>
+        <label style='margin-left:18px;'>Alerte: <select id='filter-alerte'>
+          <option value='all'>Tous</option>
+          ${[...new Set(data.map(p=>p.alerte))].map(a=>`<option value='${a}'>${a}</option>`).join('')}
+        </select></label>
+      </div>`;
+      html += `<div style='overflow-y:auto;max-height:62vh;padding-right:5px;'>`;
+      filtered.forEach(p => {
+        let color = p.alerte === 'critique' ? 'red' : (p.alerte === 'attention' ? 'orange' : 'green');
+        html += `<div style='background:#232628;border-radius:14px;padding:13px 14px 10px 14px;margin-bottom:13px;box-shadow:0 2px 8px #0003;position:relative;'>
+          <div style='font-size:1.1em;font-weight:600;'><span style='font-size:1.2em;'>&#x1F4CD;</span> ${p.nom}
+            <span style='background:${color};color:#fff;padding:2px 10px;border-radius:8px;font-size:.93em;margin-left:10px;text-transform:uppercase;'>${p.alerte}</span>
+          </div>
+          <div style='font-size:.97em;color:#bbb;margin-bottom:2px;'>${p.type_zone}</div>
+          <div style='display:flex;gap:13px;flex-wrap:wrap;font-size:.97em;margin-bottom:4px;'>
+            <span title='CO2'><b style='color:${color}'>CO&sub2;: ${p.co2} ppm</b></span>
+            <span title='Temp&eacute;rature'>&#x1F321; <b>${p.temperature}&#x2103;</b></span>
+            <span title='Humidit&eacute;'>&#x1F4A7; <b>${p.humidite}%</b></span>
+            <span title='Indice AQI'>AQI: <b>${p.aqi}</b></span>
+          </div>
+          <div style='font-size:.94em;color:#aaa;margin-bottom:2px;'>&#x1F4C5; ${p.date_heure}</div>
+          <div style='font-size:.92em;color:#aaa;'>Lat: ${p.lat} | Lon: ${p.lon}</div>
+        </div>`;
+      });
+      html += `</div>`;
+      html += `<div style='margin-top:10px;font-size:.95em;color:#bbb'>Derni&egrave;re mise &agrave; jour: ${filtered[0]?.date_heure||''}</div>`;
+      const sidebarElem = document.getElementById('sidebar');
+      if (sidebarElem) sidebarElem.innerHTML = html;
+      // Ajout listeners filtres
+      const filterTypeElem = document.getElementById('filter-type');
+      if (filterTypeElem) filterTypeElem.onchange = e => { currentType = e.target.value; displayPoints(window.smartcityData); updateSidebar(window.smartcityData); };
+      const filterAlerteElem = document.getElementById('filter-alerte');
+      if (filterAlerteElem) filterAlerteElem.onchange = e => { currentAlerte = e.target.value; displayPoints(window.smartcityData); updateSidebar(window.smartcityData); };
+    }
+
+    // R&eacute;cup&eacute;ration des donn&eacute;es
+    fetch("http://192.168.1.164:5000/api/points")
+      .then(res => res.json())
+      .then(data => {
+        window.smartcityData = data;
+        // Remplir dynamiquement les options du filtre zone
+        let types = [...new Set(data.map(p => p.type_zone))];
+        const filterTypeElem = document.getElementById('filter-type');
+        if (filterTypeElem) {
+          filterTypeElem.innerHTML = '<option value="all">Tous</option>' + types.map(t=>`<option value="${t}">${t}</option>`).join('');
+        }
+        // Remettre le filtre sur la valeur courante si d&eacute;j&agrave; s&eacute;lectionn&eacute;e
+        if (filterTypeElem) filterTypeElem.value = currentType;
+        displayPoints(data);
+        updateSidebar(data);
+        // Heatmap
+        const heat = data.map(p => [p.lat, p.lon, p.co2 / 1000]);
+        heatLayer.clearLayers();
+        heatLayer.addLayer(L.heatLayer(heat, { radius: 25 }));
+        // Périmètre
+        perimetreLayer.clearLayers();
+        if (data.length > 2) {
+          const latlngs = data.map(p => [p.lat, p.lon]);
+          perimetreLayer.addLayer(L.polygon(latlngs, {color: 'yellow', weight: 2, fillOpacity: 0.05}));
+        }
+        // Sidebar
+        updateSidebar(data);
+        // Loader
+        document.getElementById('loader').style.display = 'none';
+      });
+
+    // Ajout des couches au contrôle
+    const overlays = {
+      "Points CO₂ (pins)": pointsLayer,
+      "Heatmap": heatLayer,
+      "Périmètre": perimetreLayer
+    };
+    L.control.layers({
+    "Fond sombre": darkLayer,
+    "Fond clair": lightLayer,
+    "Satellite": satelliteLayer
+  }, overlays, {collapsed: false}).addTo(map);
+  pointsLayer.addTo(map);
+  heatLayer.addTo(map);
+  perimetreLayer.addTo(map);
+
+    // Légende enrichie
+    const legend = L.control({position: 'bottomright'});
+    legend.onAdd = function (map) {
+      const div = L.DomUtil.create('div', 'info legend');
+      div.innerHTML = `
+        <style>
+          .legend { background: #222; color: #fff; padding: 10px; border-radius: 8px; font-size: 13px; box-shadow: 2px 2px 8px #0008; }
+          .legend span { display: inline-block; width: 16px; height: 16px; margin-right: 5px; vertical-align: middle; border-radius: 50%; }
+        </style>
+        <div class="legend">
+          <b>Légende</b><br>
+          <span style="background:green;border:2px solid green"></span> Normal<br>
+          <span style="background:orange;border:2px solid orange"></span> Attention<br>
+          <span style="background:red;border:2px solid red"></span> Critique<br>
+          <span style="background:yellow;border:2px solid yellow"></span> Périmètre<br>
+          <span style="background:linear-gradient(to right, #000, #f00);"></span> Heatmap CO₂<br>
+          <span style="background:#e0e0e0;color:#222;padding:0 2px;border-radius:4px">📍</span> Point SmartCity
+        </div>
+      `;
+      return div;
+    };
+    legend.addTo(map);
+  </script>
+
+</body>
+</html>
